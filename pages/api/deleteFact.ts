@@ -1,8 +1,9 @@
 'use strict';
 
+import { NextApiRequest, NextApiResponse } from "next";
+
 const Archetype = require('archetype');
 const assert = require('assert');
-const extrovert = require('extrovert');
 const oso = require('../../oso');
 
 const DeleteFactParams = new Archetype({
@@ -41,22 +42,25 @@ const DeleteFactParams = new Archetype({
   }
 }).compile('DeleteFactParams');
 
-module.exports = extrovert.toNetlifyFunction(async params => {
-  params = new DeleteFactParams(params);
-  if (params.factType === 'role') {
-    const resourceId = params.resourceType === 'Repository' ? `${params.sessionId}_${params.resourceId}` : params.resourceId;
-    await oso.delete(
-      'has_role',
-      { type: 'User', id: `${params.sessionId}_${params.userId}` },
-      params.role,
-      { type: params.resourceType, id: resourceId }
-    );
-  } else {
-    await oso.delete(
-      params.attribute,
-      { type: 'Repository', id: `${params.sessionId}_${params.resourceId}` },
-      { type: 'Boolean', id: !!params.attributeValue + '' }
-    );
-  }
-  return { ok: true };
-}, null, 'deleteFact');
+
+
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const params = new DeleteFactParams(req.body);
+    if (params.factType === 'role') {
+      const resourceId = params.resourceType === 'Repository' ? `${params.sessionId}_${params.resourceId}` : params.resourceId;
+      await oso.delete(
+        'has_role',
+        { type: 'User', id: `${params.sessionId}_${params.userId}` },
+        params.role,
+        { type: params.resourceType, id: resourceId }
+      );
+    } else {
+      await oso.delete(
+        params.attribute,
+        { type: 'Repository', id: `${params.sessionId}_${params.resourceId}` },
+        { type: 'Boolean', id: !!params.attributeValue + '' }
+      );
+    }
+    return res.status(200).json({ ok: true });
+}

@@ -1,7 +1,8 @@
 'use strict';
 
+import { NextApiRequest, NextApiResponse } from "next";
+
 const Archetype = require('archetype');
-const extrovert = require('extrovert');
 const oso = require('../../oso');
 
 const AuthorizeParams = new Archetype({
@@ -27,12 +28,14 @@ const AuthorizeParams = new Archetype({
   }
 }).compile('AuthorizeParams');
 
-module.exports = extrovert.toNetlifyFunction(async params => {
-  params = new AuthorizeParams(params);
-  const authorized = await oso.authorize(
-    { type: 'User', id: `${params.sessionId}_${params.userId}` },
-    params.action,
-    { type: params.resourceType, id: params.resourceId }
-  );
-  return { authorized };
-}, null, 'authorize');
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const params = new AuthorizeParams(req.body);
+    const authorized = await oso.authorize(
+      { type: 'User', id: `${params.sessionId}_${params.userId}` },
+      params.action,
+      { type: params.resourceType, id: params.resourceId }
+    );
+
+    return res.status(200).json({ authorized });
+}
